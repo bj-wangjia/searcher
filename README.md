@@ -6,7 +6,7 @@ golang语言实现的通用的广告检索系统
 1. 通用性： 能试用广告检索的大部分情况
 2. 易用性： 可以极低的代价从0搭建搜索引擎
 3. 高性能： 本身搜索性能20ms内，单机QPS>1-2K
-4. 插件化： 检索各模块都是接口的形式，可以根据需求轻松定制实现
+4. 插件化，可扩展： 检索各模块都是接口的形式，可以根据需求轻松定制
 
 ## 主要特性
 
@@ -19,6 +19,10 @@ golang语言实现的通用的广告检索系统
 3. 正排索引
    1.  数值型（int, double）
    2. 字符串型
+   3.  set集合
+   4.  List
+   5.  KV
+   6.  用户自定义类型
 4. 倒排全量索引（10min内），正排实时索引（一期）
 5. 索引使用Bifrost中的Container（一期）
 6. 缓存机制（需调研）
@@ -54,40 +58,59 @@ golang语言实现的通用的广告检索系统
 查询语法支持三种格式  string,  json, go stuct
 
 ```shell
-country=us and (price in [1, 10])
+country=us and (price range [1, 10]) and (platform=ios or package in ["pacakge1", "pacakge1"] )
 ```
 
 ```````json
 {
-    "query": {
-        "and": [
-            {
-                "=": {
-                    "field": "country",
-                    "value": "US"
-                }
-            },
-            {
-                "range": {
-                    "field": "price",
-                    "value": [
-                        1,
-                        20
-                    ]
-                }
+    "and": [
+        {
+            "=": {
+                "field": "country",
+                "value": "US"
             }
-        ]
-    }
+        },
+        {
+            "range": {
+                "field": "price",
+                "value": [
+                    1,
+                    20
+                ]
+            }
+        },
+        {
+            "or": [
+                {
+                    "=": {
+                        "field": "platform",
+                        "value": "ios"
+                    }
+                },
+                {
+                    "in": {
+                        "field": "packageName",
+                        "value": [
+                            "package1",
+                            "package2"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
 }
 ```````
-
-
 
 ```go
 // 构建查询
 q := NewQuery(NewAndExpress(
-  EqExpression("country", EQ, "us"),
-  RangeExpression("price", RANGE, 1, 20)
+  NewEqExpression("country", "us"),
+  NewRangeExpression("price", 1, 20)，
+  NewOrExpress(
+    NewEqExpression("country", "us"),
+    NewInExpression("packageName", "package1", "package2")
+  ),          
 ))
 
 // 遍历结果
@@ -103,6 +126,8 @@ for q.HasNext() {
    ![](pic/search_tree.png)
 
 2. 执行语法树
+
+   1. 语法树本身可以抽象成一个迭代器，迭代的过程就是对倒排链查找的过程
 
 3. 过滤
 
