@@ -166,6 +166,8 @@ type InvertIndex interface {
 
 倒排索引更新由bifrost streamer负责， 直接使用KList的Container
 
+##### 实现
+
 #### 正排索引
 
 正排分字段存储，结构为map<fieldname, <docid, value>>
